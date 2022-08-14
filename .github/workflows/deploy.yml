@@ -6,14 +6,14 @@ on:
       - main
 
 env:
-  S3_BUCKET_NAME: spring-boot-devops-practice-bucket
+  S3_BUCKET_NAME: ilhwanee-bucket
   RESOURCE_PATH: ./src/main/resources/application.yaml
-  CODE_DEPLOY_APPLICATION_NAME: spring-boot-devops-practice-code-deploy
-  CODE_DEPLOY_DEPLOYMENT_GROUP_NAME: spring-boot-devops-practice-server
+  CODE_DEPLOY_APPLICATION_NAME: practice-code-deploy
+  CODE_DEPLOY_DEPLOYMENT_GROUP_NAME: practice-server
 
 jobs:
   build:
-    runs-on: linux-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout
@@ -31,7 +31,6 @@ jobs:
           files: ${{ env.RESOURCE_PATH }} 
         env:
           override.value: ${{ secrets.DI_FROM_SECRET }} 
-          # override.value: 'from deploy.yaml' <-- 이렇게 사용해도 주입이 된다.
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
