@@ -25,7 +25,7 @@ public class HelloControllerTest {
     @DisplayName("GET /api/hello 테스트")
     void GET_HELLO_TEST() throws Exception {
         // given & when & then
-        mockMvc.perform(get("/hello"))
+        mockMvc.perform(get("/api/hello"))
             .andExpect(status().isOk());
     }
 }
