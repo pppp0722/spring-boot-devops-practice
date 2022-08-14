@@ -22,8 +22,8 @@ public class HelloControllerTest {
     ObjectMapper objectMapper;
 
     @Test
-    @DisplayName("개인정보 조회 테스트")
-    void ME_TEST() throws Exception {
+    @DisplayName("GET /api/hello 테스트")
+    void GET_HELLO_TEST() throws Exception {
         // given & when & then
         mockMvc.perform(get("/hello"))
             .andExpect(status().isOk());
