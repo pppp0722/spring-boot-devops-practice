@@ -1,65 +1,56 @@
-name: CI-CD
+name: Spring Boot & Gradle & Docker CD
 
 on:
   push:
     branches: [ "main" ]
 
-env:
-  S3_BUCKET_NAME: ilhwanee-bucket
-  CODE_DEPLOY_APPLICATION_NAME: practice-code-deploy
-  CODE_DEPLOY_DEPLOYMENT_GROUP_NAME: practice-server
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
-
+    runs-on: ubuntu-latest
     steps:
+      # 기본 체크아웃
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
+      # JDK version 설정
       - name: Set up JDK 11
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
-          java-version: 11
-        
-        # [1]
-      - name: Set Yaml for Main
+          java-version: '11'
+          distribution: 'temurin'
+
+      # main 설정 파일 생성 및 write
+      - name: Set .yml for main
         run: |
+          # main 설정 파일 디렉토리로 이동
           cd ./src/main/resources
-          touch ./application-database.yml
+          touch ./application-database.yaml
           echo "${{ secrets.MAIN_DATABASE_YML }}" >> ./application-database.yml
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
         shell: bash
 
-        # [2]
+      # Gradle build
       - name: Build with Gradle
-        run: ./gradlew build
-        shell: bash
+        run: ./gradlew bootJar
 
-        # [3]
-      - name: Make zip file
-        run: zip -r ./$GITHUB_SHA.zip .
-        shell: bash
-
-        # [4]
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      # Spring 어플리케이션 Docker Image 빌드
+      - name: Build Docker Image For Spring
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/practice .
+          docker push ${{ secrets.DOCKER_USERNAME }}/practice
+          
+      # 서버에서 어플리케이션 실행 (with Docker)
+      - name: EC2 Docker Run
+        uses: appleboy/ssh-action@master
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} 
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
-          aws-region: ${{ secrets.AWS_REGION }} 
-
-        # [5]
-      - name: Upload to S3
-        run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.zip s3://$S3_BUCKET_NAME/$GITHUB_SHA.zip
-
-        # [6]
-      - name: Code Deploy
-        run: | 
-          aws deploy create-deployment \
-          --deployment-config-name CodeDeployDefault.AllAtOnce \
-          --application-name ${{ env.CODE_DEPLOY_APPLICATION_NAME }} \
-          --deployment-group-name ${{ env.CODE_DEPLOY_DEPLOYMENT_GROUP_NAME }} \
-          --s3-location bucket=$S3_BUCKET_NAME,bundleType=zip,key=$GITHUB_SHA.zip
+          host: ${{ secrets.HOST }}
+          username: ubuntu
+          key: ${{ secrets.KEY }}
+          script: |
+            docker rm -f $(docker ps -qa)
+            docker rmi ${{ secrets.DOCKER_USERNAME }}/practice
+            docker pull ${{ secrets.DOCKER_USERNAME }}/practice
+            docker-compose up -d
