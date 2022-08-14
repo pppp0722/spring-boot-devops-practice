@@ -1,4 +1,4 @@
-name: Spring Boot & Gradle & Docker CD
+name: Spring Boot & Gradle & Docker & EC2 CD
 
 on:
   push:
@@ -46,9 +46,9 @@ jobs:
       - name: EC2 Docker Run
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST }}
+          host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key: ${{ secrets.KEY }}
+          key: ${{ secrets.EC2_KEY }}
           script: |
             docker rm -f $(docker ps -qa)
             docker rmi ${{ secrets.DOCKER_USERNAME }}/practice
